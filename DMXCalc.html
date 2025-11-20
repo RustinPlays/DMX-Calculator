@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>DMX DIP Switch Calculator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <style>
+    :root {
+      --bg: #05060a;
+      --panel: #11131a;
+      --panel-soft: #181b23;
+      --accent: #00d4ff;
+      --accent-soft: rgba(0, 212, 255, 0.18);
+      --text-main: #f5f7ff;
+      --text-muted: #a0a4b8;
+      --danger: #ff4b81;
+      --border-subtle: #2a2d3a;
+      --radius-lg: 18px;
+    }
+
+    /* Light theme overrides */
+    :root[data-theme="light"] {
+      --bg: #f3f4fb;
+      --panel: #ffffff;
+      --panel-soft: #f2f3fb;
+      --accent: #007aff;
+      --accent-soft: rgba(0, 122, 255, 0.09);
+      --text-main: #0d1020;
+      --text-muted: #6b7085;
+      --danger: #d7265b;
+      --border-subtle: #d5d7e5;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #15182a 0, var(--bg) 45%);
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    :root[data-theme="light"] body {
+      background: radial-gradient(circle at top, #dde3ff 0, var(--bg) 45%);
+    }
+
+    .app-shell {
+      width: 100%;
+      max-width: 960px;
+      background: linear-gradient(145deg, var(--panel), #1b1e30);
+      border-radius: 24px;
+      padding: 20px clamp(20px, 4vw, 32px);
+      box-shadow:
+        0 24px 60px rgba(0, 0, 0, 0.7),
+        0 0 0 1px rgba(255, 255, 255, 0.03);
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    :root[data-theme="light"] .app-shell {
+      background: linear-gradient(145deg, #ffffff, #f3f4ff);
+      box-shadow:
+        0 18px 40px rgba(15, 21, 40, 0.18),
+        0 0 0 1px rgba(135, 140, 170, 0.12);
+    }
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    header h1 {
+      font-size: clamp(22px, 3vw, 26px);
+      margin: 0;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    header h1 span.accent-pill {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border: 1px solid rgba(0, 212, 255, 0.35);
+    }
+
+    :root[data-theme="light"] header h1 span.accent-pill {
+      border-color: rgba(0, 122, 255, 0.4);
+    }
+
+    header .subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Theme toggle */
+
+    .theme-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(0, 0, 0, 0.3);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    :root[data-theme="light"] .theme-toggle {
+      background: rgba(255, 255, 255, 0.9);
+      border-color: rgba(0, 0, 0, 0.08);
+    }
+
+    .theme-toggle span.icon {
+      font-size: 14px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.1fr);
+      gap: 16px;
+    }
+
+    @media (max-width: 800px) {
+      .grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .panel {
+      background: radial-gradient(circle at top left, #262b3a 0, #11131a 52%);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-subtle);
+      padding: 16px 16px 14px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
+      position: relative;
+      overflow: hidden;
+    }
+
+    :root[data-theme="light"] .panel {
+      background: radial-gradient(circle at top left, #f3f4ff 0, #ffffff 60%);
+      box-shadow:
+        0 10px 30px rgba(15, 21, 40, 0.12),
+        0 0 0 1px rgba(157, 160, 190, 0.18);
+    }
+
+    .panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top right, rgba(0, 212, 255, 0.08), transparent 55%);
+      pointer-events: none;
+    }
+
+    :root[data-theme="light"] .panel::before {
+      background: radial-gradient(circle at top right, rgba(0, 122, 255, 0.12), transparent 55%);
+    }
+
+    .panel-title {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .panel-title strong {
+      color: var(--accent);
+    }
+
+    .panel-body {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Address input area */
+
+    .address-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .input-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: nowrap;
+    }
+
+    .input-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--text-muted);
+    }
+
+    input[type="number"] {
+      -moz-appearance: textfield;
+    }
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    #addressInput {
+      width: 120px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(2, 4, 12, 0.85);
+      color: var(--text-main);
+      font-size: 16px;
+      text-align: center;
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.6);
+    }
+
+    :root[data-theme="light"] #addressInput {
+      background: #ffffff;
+      border-color: rgba(0, 0, 0, 0.08);
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+    }
+
+    #addressInput:focus {
+      outline: none;
+      border-color: rgba(0, 212, 255, 0.7);
+      box-shadow:
+        0 0 0 1px rgba(0, 212, 255, 0.7),
+        0 0 0 8px rgba(0, 212, 255, 0.15);
+    }
+
+    :root[data-theme="light"] #addressInput:focus {
+      border-color: rgba(0, 122, 255, 0.7);
+      box-shadow:
+        0 0 0 1px rgba(0, 122, 255, 0.7),
+        0 0 0 8px rgba(0, 122, 255, 0.18);
+    }
+
+    .stepper {
+      display: flex;
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: var(--panel-soft);
+    }
+
+    :root[data-theme="light"] .stepper {
+      background: #f1f2fb;
+      border-color: rgba(0, 0, 0, 0.06);
+    }
+
+    .stepper button {
+      border: none;
+      background: transparent;
+      color: var(--text-main);
+      font-size: 16px;
+      padding: 7px 10px;
+      min-width: 36px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .stepper button:not(:last-child) {
+      border-right: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    :root[data-theme="light"] .stepper button:not(:last-child) {
+      border-right-color: rgba(0, 0, 0, 0.06);
+    }
+
+    .stepper button:active {
+      background: rgba(255, 255, 255, 0.07);
+    }
+
+    :root[data-theme="light"] .stepper button:active {
+      background: rgba(0, 0, 0, 0.05);
+    }
+
+    .meta-address {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 18px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .meta-address span.label {
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 11px;
+      opacity: 0.9;
+    }
+
+    .meta-tag {
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    :root[data-theme="light"] .meta-tag {
+      background: rgba(255, 255, 255, 0.9);
+      border-color: rgba(0, 0, 0, 0.06);
+    }
+
+    .meta-tag strong {
+      color: var(--accent);
+    }
+
+    /* Binary display */
+
+    .binary-display {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px dashed rgba(255, 255, 255, 0.06);
+    }
+
+    :root[data-theme="light"] .binary-display {
+      border-top-color: rgba(15, 21, 40, 0.12);
+    }
+
+    .binary-row-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .binary-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      font-family: "SF Mono", ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono",
+        "Courier New", monospace;
+      font-size: 14px;
+    }
+
+    .binary-bit {
+      padding: 4px 7px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      min-width: 24px;
+      text-align: center;
+    }
+
+    :root[data-theme="light"] .binary-bit {
+      border-color: rgba(0, 0, 0, 0.18);
+    }
+
+    .binary-bit.on {
+      background: var(--accent-soft);
+      border-color: rgba(0, 212, 255, 0.7);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    :root[data-theme="light"] .binary-bit.on {
+      border-color: rgba(0, 122, 255, 0.7);
+    }
+
+    .binary-bit-labels {
+      margin-top: 4px;
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--text-muted);
+    }
+
+    /* DIP switches */
+
+    .dip-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .dip-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .dip-header-row .hint {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .dip-bank {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 12px 10px;
+      background: radial-gradient(circle at top, #292f3d 0, #10131b 60%);
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow:
+        inset 0 0 0 1px rgba(0, 0, 0, 0.8),
+        0 18px 35px rgba(0, 0, 0, 0.8);
+    }
+
+    :root[data-theme="light"] .dip-bank {
+      background: radial-gradient(circle at top, #e2e4f7 0, #ffffff 60%);
+      border-color: rgba(0, 0, 0, 0.12);
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.7),
+        0 12px 30px rgba(15, 21, 40, 0.15);
+    }
+
+    .dip-column {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+      min-width: 30px;
+    }
+
+    .dip-body {
+      width: 32px;
+      height: 72px;
+      border-radius: 8px;
+      background: linear-gradient(180deg, #050609 0, #151825 45%, #050609 100%);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow:
+        inset 0 0 0 1px rgba(0, 0, 0, 0.9),
+        0 8px 15px rgba(0, 0, 0, 0.8);
+      padding: 4px;
+      position: relative;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    :root[data-theme="light"] .dip-body {
+      background: linear-gradient(180deg, #0d0f1a 0, #1d2236 45%, #050609 100%);
+      border-color: rgba(0, 0, 0, 0.6);
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+        0 10px 18px rgba(15, 21, 40, 0.8);
+    }
+
+    .dip-body::before {
+      content: "ON";
+      position: absolute;
+      top: 4px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent);
+      opacity: 0.85;
+      pointer-events: none;
+    }
+
+    .dip-slider {
+      width: 24px;
+      height: 28px;
+      border-radius: 6px;
+      background: linear-gradient(180deg, #f5f5f7 0, #cfd1d8 100%);
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.9),
+        0 6px 12px rgba(0, 0, 0, 0.8);
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      transition: transform 0.12s ease-out;
+    }
+
+    :root[data-theme="light"] .dip-slider {
+      background: linear-gradient(180deg, #ffffff 0, #e3e5f0 100%);
+    }
+
+    .dip-slider.off {
+      transform: translate(-50%, 22px);
+    }
+
+    .dip-slider.on {
+      transform: translate(-50%, -2px);
+    }
+
+    .dip-index {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--text-muted);
+    }
+
+    .dip-value {
+      font-size: 10px;
+      color: var(--text-muted);
+      opacity: 0.7;
+    }
+
+    .footer-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 11px;
+      color: var(--text-muted);
+      opacity: 0.9;
+    }
+
+    .footer-row span strong {
+      color: var(--accent);
+      letter-spacing: 0.06em;
+    }
+
+    .error-msg {
+      margin-top: 6px;
+      font-size: 11px;
+      color: var(--danger);
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <header>
+      <div>
+        <h1>
+          DMX DIP Calculator
+          <span class="accent-pill">512 Ch Universe</span>
+        </h1>
+        <div class="subtitle">Type a DMX address or tap the switches.</div>
+      </div>
+      <div class="header-right">
+        <button id="themeToggle" class="theme-toggle" type="button">
+          <span class="icon" id="themeIcon">🌙</span>
+          <span id="themeLabel">Dark</span>
+        </button>
+      </div>
+    </header>
+
+    <section class="grid">
+      <!-- LEFT: Address + Binary -->
+      <section class="panel">
+        <div class="panel-body">
+          <div class="panel-title">
+            <strong>Address</strong> &amp; Binary
+          </div>
+
+          <div class="address-row">
+            <div class="input-group">
+              <span class="input-label">Start Address</span>
+              <input
+                id="addressInput"
+                type="number"
+                min="1"
+                max="512"
+                inputmode="numeric"
+                pattern="[0-9]*"
+              />
+            </div>
+
+            <div class="stepper" aria-label="DMX address stepper">
+              <button type="button" id="decBtn">−</button>
+              <button type="button" id="incBtn">+</button>
+            </div>
+          </div>
+
+          <div id="errorMsg" class="error-msg" style="display:none;">
+            Address must be between 1 and 512.
+          </div>
+
+          <div class="meta-address">
+            <div class="meta-tag">
+              <span class="label">Current</span>
+              &nbsp; <strong id="metaAddress">1</strong>
+            </div>
+            <div class="meta-tag">
+              <span class="label">Binary</span>
+              &nbsp; <strong id="metaBinary">000000001</strong>
+            </div>
+          </div>
+
+          <div class="binary-display">
+            <div class="binary-row-label">Binary (MSB: Switch 9 → LSB: Switch 1)</div>
+            <div id="binaryRow" class="binary-row"></div>
+            <div id="binaryLabels" class="binary-bit-labels"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT: DIP Switches -->
+      <section class="panel">
+        <div class="panel-body">
+          <div class="panel-title">
+            <strong>DIP Switches</strong> 1–9
+          </div>
+
+          <div class="dip-wrapper">
+            <div class="dip-header-row">
+              <div class="hint">Tap to toggle. ON = contributes to DMX address.</div>
+              <div class="hint">Up = ON • Down = OFF</div>
+            </div>
+
+            <div id="dipBank" class="dip-bank">
+              <!-- switches injected by JS -->
+            </div>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <footer class="footer-row">
+      <span>Switch values: <strong>1, 2, 4, 8, 16, 32, 64, 128, 256</strong></span>
+      <span>Address = sum of all <strong>ON</strong> switch values</span>
+    </footer>
+  </main>
+
+  <script>
+    const MAX_ADDRESS = 512;
+    const MIN_ADDRESS = 1;
+    const SWITCH_COUNT = 9; // switches 1..9
+
+    const addressInput = document.getElementById("addressInput");
+    const decBtn = document.getElementById("decBtn");
+    const incBtn = document.getElementById("incBtn");
+    const metaAddress = document.getElementById("metaAddress");
+    const metaBinary = document.getElementById("metaBinary");
+    const binaryRow = document.getElementById("binaryRow");
+    const binaryLabels = document.getElementById("binaryLabels");
+    const dipBank = document.getElementById("dipBank");
+    const errorMsg = document.getElementById("errorMsg");
+
+    const themeToggle = document.getElementById("themeToggle");
+    const themeIcon = document.getElementById("themeIcon");
+    const themeLabel = document.getElementById("themeLabel");
+
+    let dipStates = Array(SWITCH_COUNT).fill(false); // index 0 = switch 1, etc.
+
+    // THEME HANDLING
+    function applyTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+      if (theme === "dark") {
+        themeIcon.textContent = "🌙";
+        themeLabel.textContent = "Dark";
+      } else {
+        themeIcon.textContent = "☀️";
+        themeLabel.textContent = "Light";
+      }
+    }
+
+    function initTheme() {
+      const saved = localStorage.getItem("dmxDipTheme");
+      if (saved === "light" || saved === "dark") {
+        applyTheme(saved);
+      } else {
+        // Try match system preference
+        const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        applyTheme(prefersDark ? "dark" : "light");
+      }
+    }
+
+    themeToggle.addEventListener("click", () => {
+      const current = document.documentElement.getAttribute("data-theme") || "dark";
+      const next = current === "dark" ? "light" : "dark";
+      applyTheme(next);
+      localStorage.setItem("dmxDipTheme", next);
+    });
+
+    // ADDRESS / DIP LOGIC
+
+    function clampAddress(value) {
+      if (isNaN(value)) return MIN_ADDRESS;
+      return Math.max(MIN_ADDRESS, Math.min(MAX_ADDRESS, value));
+    }
+
+    function computeDipStatesFromAddress(address) {
+      const states = [];
+      for (let i = 0; i < SWITCH_COUNT; i++) {
+        const bitValue = 1 << i;
+        states[i] = (address & bitValue) !== 0;
+      }
+      return states;
+    }
+
+    function computeAddressFromDipStates(states) {
+      return states.reduce((sum, on, index) => {
+        return on ? sum + (1 << index) : sum;
+      }, 0);
+    }
+
+    function toBinary9(address) {
+      const bits = [];
+      for (let i = SWITCH_COUNT - 1; i >= 0; i--) {
+        const bitValue = 1 << i;
+        bits.push((address & bitValue) !== 0 ? "1" : "0");
+      }
+      return bits.join("");
+    }
+
+    function renderBinaryRow(address) {
+      const bits = [];
+      for (let i = SWITCH_COUNT - 1; i >= 0; i--) {
+        const bitValue = 1 << i;
+        const isOn = (address & bitValue) !== 0;
+        bits.push({ bit: isOn ? "1" : "0", isOn, index: i });
+      }
+
+      binaryRow.innerHTML = "";
+      binaryLabels.innerHTML = "";
+
+      bits.forEach((info) => {
+        const bitSpan = document.createElement("div");
+        bitSpan.className = "binary-bit" + (info.isOn ? " on" : "");
+        bitSpan.textContent = info.bit;
+        binaryRow.appendChild(bitSpan);
+
+        const labelSpan = document.createElement("div");
+        labelSpan.textContent = `S${info.index + 1}`;
+        binaryLabels.appendChild(labelSpan);
+      });
+    }
+
+    function renderDipBank() {
+      dipBank.innerHTML = "";
+
+      for (let i = SWITCH_COUNT - 1; i >= 0; i--) {
+        const switchIndex = i + 1;
+        const isOn = dipStates[i];
+        const value = 1 << i;
+
+        const col = document.createElement("div");
+        col.className = "dip-column";
+
+        const body = document.createElement("div");
+        body.className = "dip-body";
+        body.setAttribute("data-index", i);
+
+        const slider = document.createElement("div");
+        slider.className = "dip-slider " + (isOn ? "on" : "off");
+        body.appendChild(slider);
+
+        body.addEventListener("click", () => {
+          dipStates[i] = !dipStates[i];
+          const newAddress = computeAddressFromDipStates(dipStates);
+          if (newAddress < MIN_ADDRESS || newAddress > MAX_ADDRESS) {
+            // revert
+            dipStates[i] = !dipStates[i];
+            flashError("Resulting address would be outside 1–512.");
+            return;
+          }
+          updateFromAddress(newAddress);
+        });
+
+        const indexLabel = document.createElement("div");
+        indexLabel.className = "dip-index";
+        indexLabel.textContent = switchIndex;
+
+        const valueLabel = document.createElement("div");
+        valueLabel.className = "dip-value";
+        valueLabel.textContent = value;
+
+        col.appendChild(body);
+        col.appendChild(indexLabel);
+        col.appendChild(valueLabel);
+
+        dipBank.appendChild(col);
+      }
+    }
+
+    function updateDipVisuals() {
+      const bodies = dipBank.querySelectorAll(".dip-body");
+      bodies.forEach((body) => {
+        const index = parseInt(body.getAttribute("data-index"), 10);
+        const isOn = dipStates[index];
+        const slider = body.querySelector(".dip-slider");
+        slider.classList.toggle("on", isOn);
+        slider.classList.toggle("off", !isOn);
+      });
+    }
+
+    function flashError(message) {
+      errorMsg.textContent = message;
+      errorMsg.style.display = "block";
+      clearTimeout(flashError._timeout);
+      flashError._timeout = setTimeout(() => {
+        errorMsg.style.display = "none";
+      }, 2000);
+    }
+
+    function updateFromAddress(address) {
+      const clamped = clampAddress(address);
+      const isValid = clamped === address;
+
+      addressInput.value = clamped;
+      metaAddress.textContent = clamped.toString();
+      metaBinary.textContent = toBinary9(clamped);
+
+      dipStates = computeDipStatesFromAddress(clamped);
+      updateDipVisuals();
+      renderBinaryRow(clamped);
+
+      if (!isValid) {
+        flashError("Address auto-clamped to range 1–512.");
+      }
+    }
+
+    // === Event wiring ===
+
+    addressInput.addEventListener("input", (e) => {
+      const raw = e.target.value.replace(/[^\d]/g, "");
+      const num = raw === "" ? NaN : parseInt(raw, 10);
+
+      if (raw === "") {
+        errorMsg.style.display = "none";
+        return;
+      }
+
+      const clamped = clampAddress(num);
+      e.target.value = clamped;
+      errorMsg.style.display = "none";
+      updateFromAddress(clamped);
+    });
+
+    decBtn.addEventListener("click", () => {
+      const current = clampAddress(parseInt(addressInput.value || "1", 10));
+      if (current > MIN_ADDRESS) {
+        updateFromAddress(current - 1);
+      }
+    });
+
+    incBtn.addEventListener("click", () => {
+      const current = clampAddress(parseInt(addressInput.value || "1", 10));
+      if (current < MAX_ADDRESS) {
+        updateFromAddress(current + 1);
+      }
+    });
+
+    // === Init ===
+
+    function init() {
+      initTheme();
+      renderDipBank();
+      const startAddress = 1;
+      addressInput.value = startAddress;
+      updateFromAddress(startAddress);
+    }
+
+    init();
+  </script>
+</body>
+</html>
